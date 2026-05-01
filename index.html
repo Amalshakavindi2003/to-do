@@ -6,10 +6,28 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>To-Do List</h1>
-  <input id="taskInput" type="text" placeholder="Enter task description">
-  <button onclick="addTask()">Add Task</button>
-  <ul id="taskList"></ul>
+  <div class="container">
+    <div class="header">
+      <h1>To-Do List</h1>
+      <button class="dark-mode-btn" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+    </div>
+
+    <div class="input-section">
+      <input id="taskInput" type="text" placeholder="Enter task description">
+      <button class="add-btn" onclick="addTask()">Add Task</button>
+    </div>
+
+    <div class="stats">
+      <p>Tasks: <span id="taskCount">0</span> | Completed: <span id="completedCount">0</span></p>
+    </div>
+
+    <div class="action-buttons">
+      <button class="clear-btn" onclick="clearAll()">Clear All</button>
+    </div>
+
+    <ul id="taskList"></ul>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>
