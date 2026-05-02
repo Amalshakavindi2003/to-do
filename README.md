@@ -1,42 +1,56 @@
-#To-Do List App
+﻿# To-Do App (Web + SQLite Backend)
 
-A simple console-based task manager application built with Java. This app helps users manage daily tasks by adding, viewing, and marking tasks as complete.
+This repository contains a simple browser-based To-Do application with a local Node.js + SQLite backend for persistence.
 
-##  Features
+## Contents
+- `index.html` — Frontend UI
+- `style.css` — Styles
+- `app.js` — Frontend logic (calls REST API)
+- `server/server.js` — Express API using SQLite
+- `server/package.json` — Backend dependencies and start script
 
--  Add new tasks (maximum 5 tasks)
-- View all tasks with completion status
--  Mark tasks as complete
--  Input validation (handles invalid task numbers)
--  Exit option to close the application
+## Run locally (A–Z)
 
-## Technologies Used
+1. Open two terminals (or tabs).
 
-- Java
-- Arrays
-- Object-Oriented Programming (OOP)
-- Scanner for user input
+### Backend (API)
 
-##  How It Works
+```powershell
+cd C:\to-do\server
+npm install    # first time only
+node server.js # starts API on http://localhost:3000
+# or: npm start
+```
 
-Tasks are stored in an array with a maximum capacity of 5. Each task has:
-- A description (what needs to be done)
-- A completion status (done or not done)
+API endpoints:
+- `GET /api/tasks` — list tasks
+- `POST /api/tasks` — create task `{ description, complete }`
+- `PUT /api/tasks/:id` — update task
+- `DELETE /api/tasks/:id` — delete task
+- `DELETE /api/tasks` — delete all tasks
 
-Completed tasks show `[X]` and incomplete tasks show `[ ]`.
+### Frontend (static)
 
-##  How to Run
+```powershell
+cd C:\to-do
+npx http-server -p 8000
+# or
+python -m http.server 8000
+```
 
-1. **Compile the program:**
-```bash
-javac Main.java
+Open: `http://127.0.0.1:8000` in your browser.
 
-2.Run the program:
- java Main
+## Notes
+- The backend creates `server/db.sqlite` at runtime (it is ignored by Git).
+- `server/node_modules/` is ignored and should not be committed.
+- The frontend currently calls the API at `http://127.0.0.1:3000/api/tasks`. If you run the API on a different host/port, update `API_BASE` in `app.js`.
 
-Menu Options
-===== TO-DO LIST =====
-1. Add Task
-2. View Tasks
-3. Mark Task Complete
-4. Exit
+## Git / Pull Request
+- I pushed these changes to the branch `feature/add-sqlite-backend`.
+- To merge: open a PR from `feature/add-sqlite-backend` → `main` on GitHub, review, and merge.
+
+## Deploy / Next steps
+- Add Dockerfile or deploy the server to a small VM/container for remote access.
+- Add authentication if you want per-user lists.
+
+'
