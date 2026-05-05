@@ -1,7 +1,8 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>To-Do List</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -14,13 +15,45 @@
 
     <div id="status" class="status" aria-live="polite"></div>
 
-    <div class="input-section">
-      <input id="taskInput" type="text" placeholder="Enter task description">
-      <button type="button" class="add-btn" onclick="addTask()">Add Task</button>
-    </div>
+    <section class="panel">
+      <div class="panel-header">
+        <h2>New Task</h2>
+      </div>
+      <div class="input-grid">
+        <input id="taskInput" type="text" placeholder="Enter task description" maxlength="120">
+        <input id="dueDateInput" type="date">
+        <select id="priorityInput">
+          <option value="high">High priority</option>
+          <option value="medium" selected>Medium priority</option>
+          <option value="low">Low priority</option>
+        </select>
+        <button type="button" class="add-btn" onclick="addTask()">Add Task</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Search & Filter</h2>
+      </div>
+      <div class="filter-grid">
+        <input id="searchInput" type="search" placeholder="Search tasks by text">
+        <select id="statusFilter">
+          <option value="all">All tasks</option>
+          <option value="active">Active tasks</option>
+          <option value="completed">Completed tasks</option>
+          <option value="high">High priority</option>
+          <option value="medium">Medium priority</option>
+          <option value="low">Low priority</option>
+        </select>
+      </div>
+    </section>
 
     <div class="stats">
-      <p>Tasks: <span id="taskCount">0</span> | Completed: <span id="completedCount">0</span></p>
+      <p>
+        Tasks: <span id="taskCount">0</span> |
+        Completed: <span id="completedCount">0</span> |
+        High priority: <span id="highPriorityCount">0</span>
+      </p>
     </div>
 
     <div class="action-buttons">
@@ -30,6 +63,6 @@
     <ul id="taskList"></ul>
   </div>
 
-  <script src="app.js?v=20260505"></script>
+  <script src="app.js?v=20260505-professional"></script>
 </body>
 </html>

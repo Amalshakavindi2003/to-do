@@ -1,15 +1,13 @@
-﻿/* Robust app.js: uses backend when available, otherwise falls back to localStorage.
-   Exposes global functions used by inline onclick handlers so buttons work 100%.
-*/
+/* To-do app with server + localStorage fallback, due dates, priorities, search and filters. */
 
 let tasks = [];
 const API_PORT = 3000;
 const API_BASE = `${location.protocol}//${location.hostname}:${API_PORT}/api/tasks`;
-const maxTasks = 1000; // effectively unlimited locally
 let useServer = false;
+let activeSearch = '';
+let activeFilter = 'all';
 
 window.addEventListener('DOMContentLoaded', () => {
-  // expose functions for inline handlers
   window.addTask = addTask;
   window.deleteTask = deleteTask;
   window.editTask = editTask;
@@ -18,62 +16,70 @@ window.addEventListener('DOMContentLoaded', () => {
   window.toggleDarkMode = toggleDarkMode;
 
   const input = document.getElementById('taskInput');
-  if (input) input.addEventListener('keydown', (e) => { if (e.key === 'Enter') addTask(); });
+  if (input) input.addEventListener('keydown', (event) => { if (event.key === 'Enter') addTask(); });
 
-  checkServer().then(online => {
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) searchInput.addEventListener('input', () => {
+    activeSearch = searchInput.value.trim().toLowerCase();
+    renderTasks();
+  });
+
+  const statusFilter = document.getElementById('statusFilter');
+  if (statusFilter) statusFilter.addEventListener('change', () => {
+    activeFilter = statusFilter.value;
+    renderTasks();
+  });
+
+  loadDarkMode();
+  checkServer().then((online) => {
     useServer = online;
-    if (useServer) setStatus('Online — using server storage', true);
-    else setStatus('Offline — using local storage', false);
+    setStatus(online ? 'Online - using server storage' : 'Offline - using local storage', online);
     loadTasks();
   });
-  loadDarkMode();
 });
 
 function setStatus(text, online) {
   const el = document.getElementById('status');
   if (!el) return;
   el.textContent = text;
-  el.style.color = online ? 'green' : '#a00';
+  el.className = online ? 'status online' : 'status offline';
 }
 
-function fetchWithTimeout(url, opts = {}, timeout = 3000) {
+function fetchWithTimeout(url, options = {}, timeout = 3000) {
   return Promise.race([
-    fetch(url, opts),
+    fetch(url, options),
     new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeout))
   ]);
 }
 
 async function checkServer() {
   try {
-    const res = await fetchWithTimeout(API_BASE, { method: 'GET' }, 2000);
-    if (!res.ok) return false;
-    return true;
-  } catch (e) {
+    const response = await fetchWithTimeout(API_BASE, { method: 'GET' }, 2000);
+    return response.ok;
+  } catch (error) {
     return false;
   }
 }
 
-// LOAD
 async function loadTasks() {
   if (useServer) {
     try {
-      const res = await fetch(API_BASE);
-      if (!res.ok) throw new Error('server error');
-      tasks = await res.json();
+      const response = await fetch(API_BASE);
+      if (!response.ok) throw new Error('Server unavailable');
+      tasks = normalizeTasks(await response.json());
       renderTasks();
       return;
-    } catch (e) {
+    } catch (error) {
       useServer = false;
-      setStatus('Offline — using local storage', false);
+      setStatus('Offline - using local storage', false);
     }
   }
-  // fallback to local
   loadTasksFromLocal();
 }
 
 function loadTasksFromLocal() {
   const stored = localStorage.getItem('todoTasks');
-  tasks = stored ? JSON.parse(stored) : [];
+  tasks = stored ? normalizeTasks(JSON.parse(stored)) : [];
   renderTasks();
 }
 
@@ -81,151 +87,261 @@ function saveTasksToLocal() {
   localStorage.setItem('todoTasks', JSON.stringify(tasks));
 }
 
-// ADD
+function normalizeTasks(list) {
+  return list.map((task) => ({
+    id: Number(task.id),
+    description: String(task.description || ''),
+    complete: Boolean(task.complete),
+    dueDate: task.dueDate || task.due_date || '',
+    priority: normalizePriority(task.priority || 'medium'),
+    created_at: task.created_at || ''
+  }));
+}
+
+function normalizePriority(priority) {
+  return ['high', 'medium', 'low'].includes(priority) ? priority : 'medium';
+}
+
+function getFormValues() {
+  const descriptionInput = document.getElementById('taskInput');
+  const dueDateInput = document.getElementById('dueDateInput');
+  const priorityInput = document.getElementById('priorityInput');
+  return {
+    description: descriptionInput ? descriptionInput.value.trim() : '',
+    dueDate: dueDateInput ? dueDateInput.value : '',
+    priority: priorityInput ? normalizePriority(priorityInput.value) : 'medium'
+  };
+}
+
+function clearForm() {
+  const descriptionInput = document.getElementById('taskInput');
+  const dueDateInput = document.getElementById('dueDateInput');
+  const priorityInput = document.getElementById('priorityInput');
+  if (descriptionInput) descriptionInput.value = '';
+  if (dueDateInput) dueDateInput.value = '';
+  if (priorityInput) priorityInput.value = 'medium';
+}
+
 async function addTask() {
-  const input = document.getElementById('taskInput');
-  if (!input) return;
-  const desc = input.value.trim();
-  if (!desc) return alert('Please enter a task description!');
+  const { description, dueDate, priority } = getFormValues();
+  if (!description) return alert('Please enter a task description!');
+
+  const payload = { description, complete: false, dueDate, priority };
+
   if (useServer) {
     try {
-      const res = await fetch(API_BASE, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ description: desc, complete: false }) });
-      if (!res.ok) throw new Error('server error');
-      const created = await res.json();
+      const response = await fetch(API_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error('Server unavailable');
+      const created = normalizeTasks([await response.json()])[0];
       tasks.unshift(created);
-      input.value = '';
+      clearForm();
       renderTasks();
       return;
-    } catch (e) {
-      // fallback
+    } catch (error) {
       useServer = false;
-      setStatus('Offline — using local storage', false);
+      setStatus('Offline - using local storage', false);
     }
   }
-  // local fallback
-  const id = Date.now();
-  const t = { id, description: desc, complete: false };
-  tasks.unshift(t);
+
+  tasks.unshift({
+    id: Date.now(),
+    description,
+    complete: false,
+    dueDate,
+    priority,
+    created_at: new Date().toISOString()
+  });
   saveTasksToLocal();
-  input.value = '';
+  clearForm();
   renderTasks();
 }
 
-// DELETE
 async function deleteTask(id) {
   if (useServer) {
     try {
-      const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('server error');
-      tasks = tasks.filter(t => t.id !== id);
+      const response = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+      if (!response.ok && response.status !== 204) throw new Error('Server unavailable');
+      tasks = tasks.filter((task) => task.id !== id);
       renderTasks();
       return;
-    } catch (e) {
+    } catch (error) {
       useServer = false;
-      setStatus('Offline — using local storage', false);
+      setStatus('Offline - using local storage', false);
     }
   }
-  tasks = tasks.filter(t => t.id !== id);
+  tasks = tasks.filter((task) => task.id !== id);
   saveTasksToLocal();
   renderTasks();
 }
 
-// EDIT
 async function editTask(id) {
-  const task = tasks.find(t => t.id === id);
+  const task = tasks.find((item) => item.id === id);
   if (!task) return;
-  const newDesc = prompt('Edit task:', task.description);
-  if (!newDesc || !newDesc.trim()) return;
+
+  const newDescription = prompt('Edit task description:', task.description);
+  if (newDescription === null) return;
+  const trimmedDescription = newDescription.trim();
+  if (!trimmedDescription) return alert('Task description cannot be empty.');
+
+  const newDueDate = prompt('Edit due date (YYYY-MM-DD) or leave blank:', task.dueDate || '');
+  if (newDueDate === null) return;
+  const newPriority = prompt('Edit priority (high, medium, low):', task.priority || 'medium');
+  if (newPriority === null) return;
+
+  const updatedFields = {
+    description: trimmedDescription,
+    dueDate: newDueDate.trim(),
+    priority: normalizePriority(newPriority.trim().toLowerCase())
+  };
+
   if (useServer) {
     try {
-      const res = await fetch(`${API_BASE}/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ description: newDesc.trim() }) });
-      if (!res.ok) throw new Error('server error');
-      const updated = await res.json();
-      const idx = tasks.findIndex(t => t.id === id);
-      tasks[idx] = updated;
+      const response = await fetch(`${API_BASE}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedFields)
+      });
+      if (!response.ok) throw new Error('Server unavailable');
+      const updated = normalizeTasks([await response.json()])[0];
+      const index = tasks.findIndex((item) => item.id === id);
+      tasks[index] = updated;
       renderTasks();
       return;
-    } catch (e) {
+    } catch (error) {
       useServer = false;
-      setStatus('Offline — using local storage', false);
+      setStatus('Offline - using local storage', false);
     }
   }
-  task.description = newDesc.trim();
+
+  Object.assign(task, updatedFields);
   saveTasksToLocal();
   renderTasks();
 }
 
-// TOGGLE
 async function toggleComplete(id) {
-  const task = tasks.find(t => t.id === id);
+  const task = tasks.find((item) => item.id === id);
   if (!task) return;
+
   if (useServer) {
     try {
-      const res = await fetch(`${API_BASE}/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ complete: !task.complete }) });
-      if (!res.ok) throw new Error('server error');
-      const updated = await res.json();
-      const idx = tasks.findIndex(t => t.id === id);
-      tasks[idx] = updated;
+      const response = await fetch(`${API_BASE}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ complete: !task.complete })
+      });
+      if (!response.ok) throw new Error('Server unavailable');
+      const updated = normalizeTasks([await response.json()])[0];
+      const index = tasks.findIndex((item) => item.id === id);
+      tasks[index] = updated;
       renderTasks();
       return;
-    } catch (e) {
+    } catch (error) {
       useServer = false;
-      setStatus('Offline — using local storage', false);
+      setStatus('Offline - using local storage', false);
     }
   }
+
   task.complete = !task.complete;
   saveTasksToLocal();
   renderTasks();
 }
 
-// CLEAR
 async function clearAll() {
   if (!confirm('Are you sure you want to delete all tasks?')) return;
+
   if (useServer) {
     try {
-      const res = await fetch(API_BASE, { method: 'DELETE' });
-      if (!res.ok) throw new Error('server error');
+      const response = await fetch(API_BASE, { method: 'DELETE' });
+      if (!response.ok && response.status !== 204) throw new Error('Server unavailable');
       tasks = [];
       renderTasks();
       return;
-    } catch (e) {
+    } catch (error) {
       useServer = false;
-      setStatus('Offline — using local storage', false);
+      setStatus('Offline - using local storage', false);
     }
   }
+
   tasks = [];
   saveTasksToLocal();
   renderTasks();
 }
 
-// RENDER
+function getFilteredTasks() {
+  const search = activeSearch;
+  return tasks
+    .filter((task) => {
+      const matchesSearch = !search || task.description.toLowerCase().includes(search);
+      const matchesStatus = activeFilter === 'all' ||
+        (activeFilter === 'active' && !task.complete) ||
+        (activeFilter === 'completed' && task.complete) ||
+        (['high', 'medium', 'low'].includes(activeFilter) && task.priority === activeFilter);
+      return matchesSearch && matchesStatus;
+    })
+    .sort(compareTasks);
+}
+
+function compareTasks(a, b) {
+  if (a.complete !== b.complete) return a.complete ? 1 : -1;
+  const priorityRank = { high: 0, medium: 1, low: 2 };
+  const priorityDiff = priorityRank[a.priority] - priorityRank[b.priority];
+  if (priorityDiff !== 0) return priorityDiff;
+  const aDue = a.dueDate || '9999-12-31';
+  const bDue = b.dueDate || '9999-12-31';
+  if (aDue !== bDue) return aDue.localeCompare(bDue);
+  return b.id - a.id;
+}
+
 function renderTasks() {
   const list = document.getElementById('taskList');
   if (!list) return;
   list.innerHTML = '';
-  tasks.forEach((task) => {
+
+  const visibleTasks = getFilteredTasks();
+
+  visibleTasks.forEach((task) => {
     const li = document.createElement('li');
-    const completeClass = task.complete ? 'complete' : '';
-    const checked = task.complete ? 'checked' : '';
-    li.innerHTML = '<div class="task-content">' +
-      '<input type="checkbox" ' + checked + ' onclick="toggleComplete(' + task.id + ')" />' +
-      '<span class="task-text ' + completeClass + '">' + escapeHtml(task.description) + '</span>' +
-      '</div>' +
-      '<div class="task-buttons">' +
-      '<button type="button" class="edit-btn" onclick="editTask(' + task.id + ')">Edit</button>' +
-      '<button type="button" class="delete-btn" onclick="deleteTask(' + task.id + ')">Delete</button>' +
-      '</div>';
+    li.className = 'task-card' + (task.complete ? ' complete-card' : '');
+
+    const dueText = task.dueDate ? `Due ${task.dueDate}` : 'No due date';
+    const priorityLabel = task.priority.charAt(0).toUpperCase() + task.priority.slice(1);
+
+    li.innerHTML = `
+      <div class="task-content">
+        <input type="checkbox" ${task.complete ? 'checked' : ''} onclick="toggleComplete(${task.id})" />
+        <div class="task-main">
+          <span class="task-text ${task.complete ? 'complete' : ''}">${escapeHtml(task.description)}</span>
+          <div class="task-meta">
+            <span class="badge badge-${task.priority}">${priorityLabel}</span>
+            <span class="badge badge-neutral">${escapeHtml(dueText)}</span>
+          </div>
+        </div>
+      </div>
+      <div class="task-buttons">
+        <button type="button" class="edit-btn" onclick="editTask(${task.id})">Edit</button>
+        <button type="button" class="delete-btn" onclick="deleteTask(${task.id})">Delete</button>
+      </div>
+    `;
+
     list.appendChild(li);
   });
-  updateStats();
+
+  updateStats(visibleTasks);
 }
 
-function updateStats() {
-  const completed = tasks.filter(task => task.complete).length;
+function updateStats(visibleTasks) {
+  const completed = tasks.filter((task) => task.complete).length;
+  const highPriority = tasks.filter((task) => task.priority === 'high').length;
   const taskCountEl = document.getElementById('taskCount');
   const completedCountEl = document.getElementById('completedCount');
-  if (taskCountEl) taskCountEl.textContent = tasks.length;
-  if (completedCountEl) completedCountEl.textContent = completed;
+  const highPriorityCountEl = document.getElementById('highPriorityCount');
+  if (taskCountEl) taskCountEl.textContent = String(tasks.length);
+  if (completedCountEl) completedCountEl.textContent = String(completed);
+  if (highPriorityCountEl) highPriorityCountEl.textContent = String(highPriority);
 }
 
 function toggleDarkMode() {
@@ -241,5 +357,9 @@ function loadDarkMode() {
 
 function escapeHtml(text) {
   if (typeof text !== 'string') return '';
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
