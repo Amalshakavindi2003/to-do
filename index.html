@@ -29,6 +29,22 @@
         </select>
         <button type="button" class="add-btn" onclick="addTask()">Add Task</button>
       </div>
+      <div class="input-grid" style="margin-top:10px; grid-template-columns: 1fr 1fr 1fr auto;">
+        <label style="font-size:13px; align-self:center">Reminder</label>
+        <select id="reminderInput" style="max-width:240px;">
+          <option value="0">No reminder</option>
+          <option value="10">10 minutes before</option>
+          <option value="30">30 minutes before</option>
+          <option value="60">1 hour before</option>
+        </select>
+        <select id="recurrenceInput" style="max-width:240px;">
+          <option value="none">No recurrence</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+        <div></div>
+      </div>
     </section>
 
     <section class="panel">
@@ -63,6 +79,6 @@
     <ul id="taskList"></ul>
   </div>
 
-  <script src="app.js?v=20260505-professional"></script>
+  <script src="app.js?v=20260505-reminders"></script>
 </body>
 </html>
