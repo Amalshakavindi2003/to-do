@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To-Do List</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>To-Do List</h1>
+      <div class="header-actions">
+        <button type="button" id="logoutBtn" class="clear-btn">Logout</button>
+        <button type="button" class="dark-mode-btn" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+      </div>
+    </div>
+
+    <div id="status" class="status" aria-live="polite"></div>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>New Task</h2>
+      </div>
+      <div class="input-grid">
+        <input id="taskInput" type="text" placeholder="Enter task description" maxlength="120">
+        <input id="dueDateInput" type="date">
+        <select id="priorityInput">
+          <option value="high">High priority</option>
+          <option value="medium" selected>Medium priority</option>
+          <option value="low">Low priority</option>
+        </select>
+        <button type="button" class="add-btn" id="addTaskBtn">Add Task</button>
+      </div>
+      <div class="input-grid options-grid">
+        <label class="small-label">Reminder</label>
+        <select id="reminderInput">
+          <option value="0">No reminder</option>
+          <option value="10">10 minutes before</option>
+          <option value="30">30 minutes before</option>
+          <option value="60">1 hour before</option>
+        </select>
+        <select id="recurrenceInput">
+          <option value="none">No recurrence</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+        <div></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Search & Filter</h2>
+      </div>
+      <div class="filter-grid">
+        <input id="searchInput" type="search" placeholder="Search tasks by text">
+        <select id="statusFilter">
+          <option value="all">All tasks</option>
+          <option value="active">Active tasks</option>
+          <option value="completed">Completed tasks</option>
+          <option value="high">High priority</option>
+          <option value="medium">Medium priority</option>
+          <option value="low">Low priority</option>
+        </select>
+      </div>
+    </section>
+
+    <div class="stats">
+      <p>
+        Tasks: <span id="taskCount">0</span> |
+        Completed: <span id="completedCount">0</span> |
+        High priority: <span id="highPriorityCount">0</span>
+      </p>
+    </div>
+
+    <div class="action-buttons">
+      <button type="button" class="clear-btn" id="clearAllBtn">Clear All</button>
+    </div>
+
+    <ul id="taskList"></ul>
+  </div>
+
+  <script src="app.js?v=20260507-todo"></script>
+</body>
+</html>

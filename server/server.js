@@ -50,6 +50,8 @@ function normalizeTask(row) {
     complete: !!row.complete,
     dueDate: row.due_date || '',
     priority: row.priority || 'medium',
+    reminderOffset: row.reminder_offset || 0,
+    recurrence: row.recurrence || 'none',
     created_at: row.created_at
   };
 }
@@ -61,16 +63,18 @@ async function ensureSchema() {
     complete INTEGER DEFAULT 0,
     due_date TEXT DEFAULT '',
     priority TEXT DEFAULT 'medium',
+    reminder_offset INTEGER DEFAULT 0,
+    recurrence TEXT DEFAULT 'none',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 
   const columns = await allAsync('PRAGMA table_info(tasks)');
-  const names = columns.map((column) => column.name);
-  if (!names.includes('due_date')) {
-    await runAsync("ALTER TABLE tasks ADD COLUMN due_date TEXT DEFAULT ''");
+  const names = columns.map((c) => c.name);
+  if (!names.includes('reminder_offset')) {
+    await runAsync("ALTER TABLE tasks ADD COLUMN reminder_offset INTEGER DEFAULT 0");
   }
-  if (!names.includes('priority')) {
-    await runAsync("ALTER TABLE tasks ADD COLUMN priority TEXT DEFAULT 'medium'");
+  if (!names.includes('recurrence')) {
+    await runAsync("ALTER TABLE tasks ADD COLUMN recurrence TEXT DEFAULT 'none'");
   }
 }
 
@@ -90,12 +94,12 @@ ensureSchema().then(() => {
       const complete = req.body.complete ? 1 : 0;
       const dueDate = String(req.body.dueDate || '').trim();
       const priority = normalizePriority(String(req.body.priority || 'medium').trim().toLowerCase());
+      const reminderOffset = Number(req.body.reminderOffset || 0);
+      const recurrence = String(req.body.recurrence || 'none').trim();
 
-      if (!description) {
-        return res.status(400).json({ error: 'Description is required' });
-      }
+      if (!description) return res.status(400).json({ error: 'Description is required' });
 
-      await runAsync('INSERT INTO tasks (description, complete, due_date, priority) VALUES (?, ?, ?, ?)', [description, complete, dueDate, priority]);
+      await runAsync('INSERT INTO tasks (description, complete, due_date, priority, reminder_offset, recurrence) VALUES (?, ?, ?, ?, ?, ?)', [description, complete, dueDate, priority, reminderOffset, recurrence]);
       const row = await getAsync('SELECT * FROM tasks WHERE id = last_insert_rowid()');
       res.status(201).json(normalizeTask(row));
     } catch (error) {
@@ -113,12 +117,12 @@ ensureSchema().then(() => {
       const complete = req.body.complete !== undefined ? (req.body.complete ? 1 : 0) : current.complete;
       const dueDate = req.body.dueDate !== undefined ? String(req.body.dueDate || '').trim() : (current.due_date || '');
       const priority = req.body.priority !== undefined ? normalizePriority(String(req.body.priority || 'medium').trim().toLowerCase()) : (current.priority || 'medium');
+      const reminderOffset = req.body.reminderOffset !== undefined ? Number(req.body.reminderOffset) : (current.reminder_offset || 0);
+      const recurrence = req.body.recurrence !== undefined ? String(req.body.recurrence || 'none').trim() : (current.recurrence || 'none');
 
-      if (!description) {
-        return res.status(400).json({ error: 'Description is required' });
-      }
+      if (!description) return res.status(400).json({ error: 'Description is required' });
 
-      await runAsync('UPDATE tasks SET description = ?, complete = ?, due_date = ?, priority = ? WHERE id = ?', [description, complete, dueDate, priority, id]);
+      await runAsync('UPDATE tasks SET description = ?, complete = ?, due_date = ?, priority = ?, reminder_offset = ?, recurrence = ? WHERE id = ?', [description, complete, dueDate, priority, reminderOffset, recurrence, id]);
       const updated = await getAsync('SELECT * FROM tasks WHERE id = ?', [id]);
       res.json(normalizeTask(updated));
     } catch (error) {
@@ -143,6 +147,9 @@ ensureSchema().then(() => {
       res.status(500).json({ error: error.message });
     }
   });
+
+  // Calendar Sync scaffold (requires OAuth setup): endpoints left as placeholders for future configuration.
+  app.get('/api/sync/status', (req, res) => res.json({ calendarSync: false, message: 'Configure Google OAuth to enable calendar sync' }));
 
   app.listen(PORT, () => console.log(`API server running on http://localhost:${PORT}`));
 }).catch((error) => {
