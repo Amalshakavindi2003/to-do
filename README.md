@@ -1,56 +1,62 @@
-﻿# To-Do App (Web + SQLite Backend)
+# To-Do App (Web + SQLite Backend)
 
-This repository contains a simple browser-based To-Do application with a local Node.js + SQLite backend for persistence.
+This repository contains a browser-based To-Do application with a Node.js + SQLite backend.
 
-## Contents
-- `index.html` — Frontend UI
-- `style.css` — Styles
-- `app.js` — Frontend logic (calls REST API)
-- `server/server.js` — Express API using SQLite
-- `server/package.json` — Backend dependencies and start script
+## Stack
+- Frontend: HTML, CSS, JavaScript
+- Backend: Node.js + Express
+- Database: SQLite (`server/db.sqlite`)
+- Auth: JWT (access + refresh tokens)
 
-## Run locally (A–Z)
+## Features
+- Signup / login / logout
+- Private user tasks (each user sees only their own tasks)
+- Due dates, priority, reminders, recurrence
+- Search and filter
+- Dark mode
 
-1. Open two terminals (or tabs).
+## Run locally
 
-### Backend (API)
+Open two terminals.
+
+### 1) Backend
 
 ```powershell
 cd C:\to-do\server
-npm install    # first time only
-node server.js # starts API on http://localhost:3000
-# or: npm start
+npm install
+node server.js
 ```
 
-API endpoints:
-- `GET /api/tasks` — list tasks
-- `POST /api/tasks` — create task `{ description, complete }`
-- `PUT /api/tasks/:id` — update task
-- `DELETE /api/tasks/:id` — delete task
-- `DELETE /api/tasks` — delete all tasks
+Backend runs at `http://127.0.0.1:3000`.
 
-### Frontend (static)
+### 2) Frontend
 
 ```powershell
 cd C:\to-do
 npx http-server -p 8000
-# or
-python -m http.server 8000
 ```
 
-Open: `http://127.0.0.1:8000` in your browser.
+Open: `http://127.0.0.1:8000`
+
+## Auth API
+
+- `POST /api/auth/signup` body: `{ name, email, password }`
+- `POST /api/auth/login` body: `{ email, password }`
+- `POST /api/auth/refresh` body: `{ refreshToken }`
+- `POST /api/auth/logout` body: `{ refreshToken }`
+- `GET /api/auth/me` header: `Authorization: Bearer <accessToken>`
+
+## Task API (authenticated)
+
+All task endpoints require `Authorization: Bearer <accessToken>`.
+
+- `GET /api/tasks`
+- `POST /api/tasks`
+- `PUT /api/tasks/:id`
+- `DELETE /api/tasks/:id`
+- `DELETE /api/tasks`
 
 ## Notes
-- The backend creates `server/db.sqlite` at runtime (it is ignored by Git).
-- `server/node_modules/` is ignored and should not be committed.
-- The frontend currently calls the API at `http://127.0.0.1:3000/api/tasks`. If you run the API on a different host/port, update `API_BASE` in `app.js`.
-
-## Git / Pull Request
-- I pushed these changes to the branch `feature/add-sqlite-backend`.
-- To merge: open a PR from `feature/add-sqlite-backend` → `main` on GitHub, review, and merge.
-
-## Deploy / Next steps
-- Add Dockerfile or deploy the server to a small VM/container for remote access.
-- Add authentication if you want per-user lists.
-
-'
+- `server/node_modules` and `server/db.sqlite` should stay ignored in git.
+- In production, set strong values for `ACCESS_TOKEN_SECRET` and `REFRESH_TOKEN_SECRET`.
+- Calendar sync endpoint is scaffolded: `GET /api/sync/status`.
