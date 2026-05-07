@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "todo-server",
   "version": "1.0.0",
   "description": "Backend API for to-do app (SQLite + Express)",
@@ -7,8 +7,10 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.3",
     "sqlite3": "^5.1.6"
   }
 }
