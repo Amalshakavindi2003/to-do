@@ -1,0 +1,53 @@
+﻿<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>To-Do App</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>To-Do App</h1>
+
+    <section id="auth">
+      <div class="card">
+        <h2>Sign Up</h2>
+        <input id="signup-name" placeholder="Name">
+        <input id="signup-email" placeholder="Email">
+        <input id="signup-password" type="password" placeholder="Password">
+        <button id="signup-btn">Sign Up</button>
+      </div>
+      <div class="card">
+        <h2>Login</h2>
+        <input id="login-email" placeholder="Email">
+        <input id="login-password" type="password" placeholder="Password">
+        <button id="login-btn">Login</button>
+      </div>
+    </section>
+
+    <section id="app" class="hidden">
+      <div class="card">
+        <h2>Create New Task</h2>
+        <input id="task-desc" placeholder="Task description">
+        <input id="task-due" type="date">
+        <select id="task-priority">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+        </select>
+        <button id="add-task-btn">Add Task</button>
+      </div>
+
+      <div class="card">
+        <h2>Your Tasks</h2>
+        <ul id="tasks-list"></ul>
+      </div>
+
+      <button id="logout-btn" class="danger">Logout</button>
+    </section>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -142,23 +142,6 @@ async function refreshToken() {
   }
 }
 
-// Normalize API task representation to the client-side shape the UI expects
-function normalizeTask(raw) {
-  if (!raw) return raw;
-  return {
-    id: raw.id ?? raw._id,
-    description: raw.description ?? raw.desc ?? "",
-    notes: raw.notes ?? "",
-    complete: Boolean(raw.complete),
-    dueDate: raw.due_date ?? raw.dueDate ?? null,
-    priority: raw.priority ?? "medium",
-    reminderOffset: raw.reminder_offset ?? raw.reminderOffset ?? 0,
-    recurrence: raw.recurrence ?? "none",
-    created_at: raw.created_at ?? raw.createdAt ?? new Date().toISOString(),
-    _raw: raw,
-  };
-}
-
 async function addTask() {
   const taskInput = document.getElementById("taskInput");
   const notesInput = document.getElementById("notesInput");
@@ -166,34 +149,17 @@ async function addTask() {
   const priorityInput = document.getElementById("priorityInput");
   const reminderInput = document.getElementById("reminderInput");
   const recurrenceInput = document.getElementById("recurrenceInput");
-  const addTaskBtn = document.getElementById("addTaskBtn");
-  const statusEl = document.getElementById("status");
 
-  if (!taskInput) {
-    console.error("Add Task failed: taskInput element not found");
-    return;
-  }
-
-  const desc = (taskInput.value || "").trim();
-  if (!desc) {
-    if (statusEl) statusEl.textContent = "Please enter a task description.";
-    return;
-  }
-
-  if (addTaskBtn) {
-    addTaskBtn.disabled = true;
-    addTaskBtn.textContent = "Adding...";
-  }
-  if (statusEl) statusEl.textContent = "Saving task...";
+  if (!taskInput.value.trim()) return;
 
   const taskData = {
-    description: desc,
-    notes: (notesInput && notesInput.value) ? notesInput.value.trim() : "",
+    description: taskInput.value.trim(),
+    notes: notesInput.value.trim(),
     complete: false,
-    due_date: (dueDateInput && dueDateInput.value) ? dueDateInput.value : null,
-    priority: (priorityInput && priorityInput.value) ? priorityInput.value : "medium",
-    reminder_offset: parseInt(reminderInput ? reminderInput.value : "0", 10) || 0,
-    recurrence: (recurrenceInput && recurrenceInput.value) ? recurrenceInput.value : "none",
+    due_date: dueDateInput.value || null,
+    priority: priorityInput.value,
+    reminder_offset: parseInt(reminderInput.value),
+    recurrence: recurrenceInput.value,
   };
 
   try {
@@ -203,33 +169,18 @@ async function addTask() {
     });
 
     if (response && response.ok) {
-      const raw = await response.json();
-      const task = normalizeTask(raw);
+      const task = await response.json();
       tasks.push(task);
       renderTasks();
-
       taskInput.value = "";
-      if (notesInput) notesInput.value = "";
-      if (dueDateInput) dueDateInput.value = "";
-      if (priorityInput) priorityInput.value = "medium";
-      if (reminderInput) reminderInput.value = "0";
-      if (recurrenceInput) recurrenceInput.value = "none";
-
-      if (statusEl) statusEl.textContent = "Task added.";
-    } else if (response) {
-      const text = await response.text().catch(() => "");
-      console.error("Add task failed:", response.status, text);
-      if (statusEl) statusEl.textContent = `Failed to add task (${response.status}).`;
+      notesInput.value = "";
+      dueDateInput.value = "";
+      priorityInput.value = "medium";
+      reminderInput.value = "0";
+      recurrenceInput.value = "none";
     }
   } catch (error) {
     console.error("Error adding task:", error);
-    if (statusEl) statusEl.textContent = "Error adding task. Check console.";
-  } finally {
-    if (addTaskBtn) {
-      addTaskBtn.disabled = false;
-      addTaskBtn.textContent = "Add Task";
-    }
-    setTimeout(() => { if (statusEl) statusEl.textContent = ""; }, 2500);
   }
 }
 
@@ -259,8 +210,7 @@ async function editTask(id) {
     });
 
     if (response && response.ok) {
-      const raw = await response.json();
-      const updated = normalizeTask(raw);
+      const updated = await response.json();
       const idx = tasks.findIndex((t) => t.id === id);
       if (idx >= 0) tasks[idx] = updated;
       renderTasks();
@@ -281,8 +231,7 @@ async function toggleComplete(id) {
     });
 
     if (response && response.ok) {
-      const raw = await response.json();
-      const updated = normalizeTask(raw);
+      const updated = await response.json();
       const idx = tasks.findIndex((t) => t.id === id);
       if (idx >= 0) tasks[idx] = updated;
       renderTasks();
@@ -310,8 +259,7 @@ async function loadTasks() {
   try {
     const response = await authFetch(TASKS_API);
     if (response && response.ok) {
-      const raw = await response.json();
-      tasks = (Array.isArray(raw) ? raw : []).map(normalizeTask);
+      tasks = await response.json();
       renderTasks();
     }
   } catch (error) {
@@ -402,12 +350,12 @@ function renderTasks() {
   const sorted = sortTasks(filtered);
 
   if (sorted.length === 0) {
-    if (taskList) taskList.innerHTML = "";
-    if (emptyState) emptyState.classList.remove("hidden");
+    taskList.innerHTML = "";
+    emptyState.classList.remove("hidden");
     return;
   }
 
-  if (emptyState) emptyState.classList.add("hidden");
+  emptyState.classList.add("hidden");
 
   taskList.innerHTML = sorted
     .map((task) => {
@@ -500,91 +448,6 @@ function askNotificationPermission() {
   if ("Notification" in window && Notification.permission === "default") {
     Notification.requestPermission();
   }
-}/* AGENT PATCH START - normalize and robust addTask/loadTasks */
-function normalizeTask(raw) {
-  if (!raw) return raw;
-  return {
-    id: raw.id ?? raw._id,
-    description: raw.description ?? raw.desc ?? "",
-    notes: raw.notes ?? "",
-    complete: Boolean(raw.complete),
-    dueDate: raw.due_date ?? raw.dueDate ?? null,
-    priority: raw.priority ?? "medium",
-    reminderOffset: raw.reminder_offset ?? raw.reminderOffset ?? 0,
-    recurrence: raw.recurrence ?? "none",
-    created_at: raw.created_at ?? raw.createdAt ?? new Date().toISOString(),
-  };
 }
+// PATCH_MARKER_FROM_AGENT
 
-window.loadTasks = async function () {
-  try {
-    const response = await authFetch(TASKS_API);
-    if (response && response.ok) {
-      const raw = await response.json();
-      tasks = (Array.isArray(raw) ? raw : []).map(normalizeTask);
-      renderTasks();
-    }
-  } catch (error) {
-    console.error("Error loading tasks (patched):", error);
-  }
-};
-
-window.addTask = async function () {
-  const taskInput = document.getElementById("taskInput");
-  const notesInput = document.getElementById("notesInput");
-  const dueDateInput = document.getElementById("dueDateInput");
-  const priorityInput = document.getElementById("priorityInput");
-  const reminderInput = document.getElementById("reminderInput");
-  const recurrenceInput = document.getElementById("recurrenceInput");
-  const addTaskBtn = document.getElementById("addTaskBtn");
-  const statusEl = document.getElementById("status");
-
-  if (!taskInput) return console.error("taskInput missing");
-  const desc = (taskInput.value || "").trim();
-  if (!desc) {
-    if (statusEl) statusEl.textContent = "Please enter a task description.";
-    return;
-  }
-
-  if (addTaskBtn) { addTaskBtn.disabled = true; addTaskBtn.textContent = "Adding..."; }
-  if (statusEl) statusEl.textContent = "Saving task...";
-
-  const taskData = {
-    description: desc,
-    notes: (notesInput && notesInput.value) ? notesInput.value.trim() : "",
-    complete: false,
-    due_date: (dueDateInput && dueDateInput.value) ? dueDateInput.value : null,
-    priority: (priorityInput && priorityInput.value) ? priorityInput.value : "medium",
-    reminder_offset: parseInt(reminderInput ? reminderInput.value : "0", 10) || 0,
-    recurrence: (recurrenceInput && recurrenceInput.value) ? recurrenceInput.value : "none",
-  };
-
-  try {
-    const response = await authFetch(TASKS_API, { method: 'POST', body: JSON.stringify(taskData) });
-    if (response && response.ok) {
-      const raw = await response.json();
-      const task = normalizeTask(raw);
-      tasks.push(task);
-      renderTasks();
-      taskInput.value = '';
-      if (notesInput) notesInput.value = '';
-      if (dueDateInput) dueDateInput.value = '';
-      if (priorityInput) priorityInput.value = 'medium';
-      if (reminderInput) reminderInput.value = '0';
-      if (recurrenceInput) recurrenceInput.value = 'none';
-      if (statusEl) statusEl.textContent = 'Task added.';
-    } else if (response) {
-      const text = await response.text().catch(() => '');
-      console.error('Add task failed (patched):', response.status, text);
-      if (statusEl) statusEl.textContent = `Failed to add task (${response.status}).`;
-    }
-  } catch (err) {
-    console.error('Error adding task (patched):', err);
-    if (statusEl) statusEl.textContent = 'Error adding task. See console.';
-  } finally {
-    if (addTaskBtn) { addTaskBtn.disabled = false; addTaskBtn.textContent = 'Add Task'; }
-    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2500);
-  }
-};
-
-/* AGENT PATCH END */
