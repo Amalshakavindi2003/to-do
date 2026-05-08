@@ -9,10 +9,13 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>To-Do List</h1>
-      <div class="header-actions">
-        <button type="button" id="logoutBtn" class="clear-btn">Logout</button>
+      <div class="header-left">
+        <h1>📋 To-Do List</h1>
+      </div>
+      <div class="header-right">
+        <span class="user-email" id="userEmail"></span>
         <button type="button" class="dark-mode-btn" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+        <button type="button" id="logoutBtn" class="logout-btn">Logout</button>
       </div>
     </div>
 
@@ -20,14 +23,15 @@
 
     <section class="panel">
       <div class="panel-header">
-        <h2>New Task</h2>
+        <h2>Create New Task</h2>
       </div>
       <div class="input-grid">
-        <input id="taskInput" type="text" placeholder="Enter task description" maxlength="120">
+        <input id="taskInput" type="text" placeholder="Task description" maxlength="120">
+        <input id="notesInput" type="text" placeholder="Optional notes" maxlength="200">
         <input id="dueDateInput" type="date">
         <select id="priorityInput">
-          <option value="high">High priority</option>
           <option value="medium" selected>Medium priority</option>
+          <option value="high">High priority</option>
           <option value="low">Low priority</option>
         </select>
         <button type="button" class="add-btn" id="addTaskBtn">Add Task</button>
@@ -36,8 +40,8 @@
         <label class="small-label">Reminder</label>
         <select id="reminderInput">
           <option value="0">No reminder</option>
-          <option value="10">10 minutes before</option>
-          <option value="30">30 minutes before</option>
+          <option value="10">10 min before</option>
+          <option value="30">30 min before</option>
           <option value="60">1 hour before</option>
         </select>
         <select id="recurrenceInput">
@@ -55,33 +59,45 @@
         <h2>Search & Filter</h2>
       </div>
       <div class="filter-grid">
-        <input id="searchInput" type="search" placeholder="Search tasks by text">
+        <input id="searchInput" type="search" placeholder="Search tasks">
         <select id="statusFilter">
           <option value="all">All tasks</option>
-          <option value="active">Active tasks</option>
-          <option value="completed">Completed tasks</option>
-          <option value="high">High priority</option>
-          <option value="medium">Medium priority</option>
-          <option value="low">Low priority</option>
+          <option value="active">Active</option>
+          <option value="completed">Completed</option>
+          <option value="overdue">Overdue</option>
+          <option value="high">High Priority</option>
+          <option value="medium">Medium Priority</option>
+          <option value="low">Low Priority</option>
+        </select>
+        <select id="sortInput">
+          <option value="created">Sort: Newest</option>
+          <option value="due-date">Sort: Due Date</option>
+          <option value="priority">Sort: Priority</option>
+          <option value="alphabetical">Sort: A-Z</option>
         </select>
       </div>
     </section>
 
     <div class="stats">
       <p>
-        Tasks: <span id="taskCount">0</span> |
-        Completed: <span id="completedCount">0</span> |
-        High priority: <span id="highPriorityCount">0</span>
+        📊 Tasks: <span id="taskCount">0</span> | 
+        ✓ Completed: <span id="completedCount">0</span> | 
+        ⚡ High: <span id="highPriorityCount">0</span> |
+        ⏰ Overdue: <span id="overdueCount">0</span>
       </p>
     </div>
 
     <div class="action-buttons">
-      <button type="button" class="clear-btn" id="clearAllBtn">Clear All</button>
+      <button type="button" class="clear-btn" id="clearAllBtn">🗑️ Clear All</button>
+    </div>
+
+    <div id="emptyState" class="empty-state hidden">
+      <p>🎯 No tasks yet. Create one to get started!</p>
     </div>
 
     <ul id="taskList"></ul>
   </div>
 
-  <script src="app.js?v=20260507-todo"></script>
+  <script src="app.js?v=20260507-pro"></script>
 </body>
 </html>
